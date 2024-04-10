@@ -27,6 +27,11 @@ async def convert_number(number: Annotated[int | str, Body()]) -> ConverterRespo
     }
     """
 
-    converter_response = ConverterResponse()
+    converter_response = ConverterResponse(arabic=0, roman="")
 
+    if isinstance(number, int):
+        converter_response = ConverterResponse(arabic=number, roman=convert_arabic_to_roman(number))
+    elif isinstance(number, str):
+        converter_response = ConverterResponse(arabic=convert_roman_to_arabic(number), roman=number)
+    
     return converter_response
