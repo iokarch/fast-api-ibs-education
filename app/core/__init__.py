@@ -1,6 +1,12 @@
 from abc import ABC, abstractmethod
+from fastapi import HTTPException
 from io import StringIO
+import pandas as pd
+from pandas.api.types import is_string_dtype, is_numeric_dtype
 
+class CustomException(HTTPException):
+    def __init__(self, detail: str, status_code: int = 400):
+        super().__init__(status_code=status_code, detail=detail)
 
 def convert_arabic_to_roman(number: int) -> str:
     """
@@ -107,10 +113,52 @@ def convert_roman_to_arabic(number: str) -> int:
             arabic_numeral += map_roman[number[index]]
     return arabic_numeral
 
+def check_correct_csv_file(data: pd.DataFrame) -> bool:
+    """
+    Проверяет csv-файл на валидность
+    """
 
+    # Проверка на соответсвие названий колонок
+    keys = data.columns.tolist()
+    if (keys != ['Имя', 'Возраст', 'Должность']):
+        return False
+    
+    # Проверка аннотаций типов столбцов
+    if not is_string_dtype(data['Имя']) \
+        or not is_numeric_dtype(data['Возраст']) \
+        or not is_string_dtype(data['Должность']):
+        return False
+
+    return True
 
 def average_age_by_position(file):
-    pass
+    """
+    Принимает csv-файл с сотрудниками компании с колонками "Имя", "Возраст", "Должность". 
+    Возвращает словарь с ключами уникальных должностей и значениями среднего возраста сотрудников по каждой должности
+    """
+
+    # Попытка парсинга файла
+    try:
+        data = pd.read_csv(file.file)
+    except Exception:
+        raise CustomException(detail="Невалидный файл", status_code=400)
+
+    # Проверка на валидность
+    if not check_correct_csv_file(data):
+        raise CustomException(detail="Невалидный файл", status_code=400)
+    
+    # Словарь уникальных должностей
+    dict_of_post = dict.fromkeys(data["Должность"].tolist(), None)
+
+    # Рассчет среднего возраста сотрудников по должностям
+    for post in dict_of_post:
+        mean = data[data['Должность'] == post][['Возраст']].mean().tolist()[0]
+        # Проверка на пустое значение
+        if (pd.isna(mean)):
+            continue
+        dict_of_post[post] = mean
+    
+    return dict_of_post
 
 
 """
