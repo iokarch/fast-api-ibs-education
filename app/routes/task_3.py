@@ -35,6 +35,9 @@ router = APIRouter(tags=["Стажировка"])
 """
 @router.post("/check_json", description="Задание_3. Валидация json")
 async def check_json(body: BigJson) -> BigJson:
-    """ """
+    """ 
+    Проверяет входящий json на на наличие полей и типов данных, соответсвующие модели BigJson.
+    Возращает json обратно, если проверка будет пройдена.
+    """
 
     return body
