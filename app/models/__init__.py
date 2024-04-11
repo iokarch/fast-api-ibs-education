@@ -60,6 +60,13 @@ class User(BaseModel):
         return info.data["age"] >= 18
 
 
+class UserFromDB(User):
+    """
+    Модификация класса User для БД
+    """
+    id: int
+
+
 class MetaMapping(BaseModel):
     """
     Мета-отображение

@@ -26,3 +26,6 @@ app.include_router(r_6)
 
 from app.routes.task_8 import router as r_8
 app.include_router(r_8)
+
+from app.routes.task_11 import router as r_11
+app.include_router(r_11)
