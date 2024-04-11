@@ -3,6 +3,8 @@ from pydantic import BaseModel, field_validator
 from pydantic_core.core_schema import ValidationInfo
 from datetime import datetime
 
+# Путь для хранения файлов. Задание 5,6
+SAVE_PATH = "app/files/save/"
 
 class ConverterRequest(BaseModel):
     number: Union[int, str]
@@ -87,6 +89,46 @@ class BigJson(BaseModel):
     """Использует модель User и UserMeta"""
     user: User
     meta: UserMeta
+
+
+class FileStorage(BaseModel):
+    """
+    Хранилище файла
+
+    :param id: - Идентификатор файла
+    :param filename: - Имя файла с форматом
+    :param path: - Директория файла
+    """
+    id: int
+    filename: str
+    path: str
+
+
+# Фейковая база данных сохраненных файлов
+fake_file_storage_db : list[FileStorage] = []
+
+
+def file_storage_db_add(file: FileStorage) -> None:
+    '''Добавляет в бд новую запись FileStorage'''
+    if file:
+        fake_file_storage_db.append(file)
+
+def file_storage_db_get(request_id: int) -> FileStorage:
+    '''Берет запись из базы данных FileStorage'''
+    for file in fake_file_storage_db:
+        if (request_id == file.id):
+            return file
+    return None
+
+def file_storage_db_get_last_id() -> int:
+    '''Возвращает последний ID из базы данных FileStorage'''
+    file_id: int = 0
+    for i in fake_file_storage_db:
+        print(i.id)
+        if i.id > file_id:
+            print(i.id)
+            file_id = i.id
+    return file_id
 
 
 # class UserRequest(BaseModel):
