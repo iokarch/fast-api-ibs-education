@@ -6,6 +6,16 @@ from datetime import datetime
 # Путь для хранения файлов. Задание 5,6
 SAVE_PATH = "app/files/save/"
 
+
+class CountModel(BaseModel):
+    """
+    Счетчик запросов приложения
+
+    :param count: - Количество запросов приложения
+    """
+    count: int = 0
+
+
 class ConverterRequest(BaseModel):
     number: Union[int, str]
 
