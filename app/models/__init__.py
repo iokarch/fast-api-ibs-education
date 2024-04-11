@@ -91,6 +91,24 @@ class BigJson(BaseModel):
     meta: UserMeta
 
 
+class FileMatrixGeneration(BaseModel):
+    """
+    Модель файла с записанной матрицей
+
+    :param file_type: - Формат файла (json, csv, yaml)
+    :param matrix_size: - Размер матрицы [4..15]
+    """
+    file_type: str
+    matrix_size: int
+
+    @field_validator("matrix_size")
+    @classmethod
+    def validate_matrix_size(cls, value):
+        if value > 15 or value < 4:
+            raise ValueError("Matrix size must be in [4..15]")
+        return value
+    
+
 class FileStorage(BaseModel):
     """
     Хранилище файла

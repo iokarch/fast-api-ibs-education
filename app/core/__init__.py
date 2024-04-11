@@ -1,8 +1,15 @@
-from abc import ABC, abstractmethod
-from fastapi import HTTPException
-from io import StringIO
+import os
+import json
+import shutil
 import pandas as pd
+
+from fastapi import HTTPException
+from abc import ABC, abstractmethod
+from io import StringIO
 from pandas.api.types import is_string_dtype, is_numeric_dtype
+
+from app.models import FileStorage, file_storage_db_add, file_storage_db_get, file_storage_db_get_last_id
+
 
 class CustomException(HTTPException):
     def __init__(self, detail: str, status_code: int = 400):
@@ -187,25 +194,48 @@ class BaseWriter(ABC):
 class JSONWriter(BaseWriter):
     """Потомок BaseWriter с переопределением метода write для генерации файла в json формате"""
 
-    """Ваша реализация"""
+    def write(self, data: list[list[int, str, float]]) -> StringIO:
+        json_data : dict = {"matrix": []}
+        for row in range(len(data)):
+            row_data = {"row": row + 1, 'content': data[row]}
+            json_data["matrix"].append(row_data)
 
-    pass
+        file = StringIO()
+        json.dump(json_data, file)
+        return file
 
 
 class CSVWriter:
     """Потомок BaseWriter с переопределением метода write для генерации файла в csv формате"""
 
-    """Ваша реализация"""
+    def write(self, data: list[list[int, str, float]]) -> StringIO:
+        csv_data : str = ""
+        csv_data += ",".join(["column_" + str(i + 1) for i in range(len(data))]) + "\n"
+    
+        for row in range(len(data)):
+            csv_data += ",".join([str(item) for item in data[row]])
+            if row < len(data) - 1:
+                csv_data += "\n"
 
-    pass
+        file = StringIO()
+        file.write(csv_data)
+        return file
 
 
 class YAMLWriter:
     """Потомок BaseWriter с переопределением метода write для генерации файла в yaml формате"""
 
-    """Ваша реализация"""
+    def write(self, data: list[list[int]]) -> StringIO:
+        yaml_data = "matrix:\n"
 
-    pass
+        for row in range(len(data)):
+            yaml_data += f" row_{row + 1}: {data[row]}"
+            if row < len(data) - 1:
+                yaml_data += "\n"
+
+        file = StringIO()
+        file.write(yaml_data)
+        return file
 
 
 class DataGenerator:
@@ -217,7 +247,21 @@ class DataGenerator:
         """Генерирует матрицу данных заданного размера."""
 
         data: list[list[int, str, float]] = []
-        """Ваша реализация"""
+        
+        ''' Пример матрицы 5x5:
+            [[0, 1, 2, 3, 4], 
+            [1, 2, 3, 4, 5], 
+            [2, 3, 4, 5, 6], 
+            [3, 4, 5, 6, 7], 
+            [4, 5, 6, 7, 8]]
+        '''
+
+        # Генерация матрицы
+        for index_1 in range(matrix_size):
+            dot_data = []
+            for index_2 in range(matrix_size):
+                dot_data.append(index_1 + index_2)
+            data.append(dot_data)
 
         self.data = data
 
@@ -229,6 +273,37 @@ class DataGenerator:
         :param writer: Одна из реализаций классов потомков от BaseWriter
         """
 
-        """Ваша реализация"""
+        if self.data == None:
+            raise CustomException(detail="Matrix missing error", status_code=404)
 
-        pass
+        file = None
+
+        # Запись матрицы в заданном формате
+        if writer == 'json':
+            file = JSONWriter().write(self.data)
+        elif writer == 'csv':
+            file = CSVWriter().write(self.data)
+        elif writer == 'yaml':
+            file = YAMLWriter().write(self.data)
+        else:
+            raise CustomException(detail="The file format is set incorrectly", status_code=400)
+        
+        if file == None:
+            raise CustomException(detail="File missing error", status_code=400)
+        
+        file_name = 'file with matrix'
+        file_format = '.' + writer
+
+        while os.path.exists(path + file_name + file_format):
+            file_name = file_name + " — copy"
+
+        file_location = path + file_name + file_format
+
+        with open(file_location, mode='w') as file_obj:
+            file.seek(0)
+            shutil.copyfileobj(file, file_obj)
+
+        self.file_id: int = file_storage_db_get_last_id() + 1
+
+        new_file_storage = FileStorage(id=self.file_id, filename=file_name+file_format, path=file_location)
+        file_storage_db_add(new_file_storage)
